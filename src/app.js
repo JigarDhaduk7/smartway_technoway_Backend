@@ -3,6 +3,10 @@ const cors = require('cors');
 const testimonialRoutes = require('./routes/testimonial.routes');
 const jobRoutes = require('./routes/job.routes');
 const contactRoutes = require('./routes/contact.routes');
+const blogRoutes = require('./routes/blog.routes');
+const serviceRoutes = require('./routes/service.routes');
+
+
 
 const app = express();
 
@@ -12,6 +16,10 @@ app.use(express.json());
 app.use('/api/testimonials', testimonialRoutes);
 app.use('/api/jobs', jobRoutes);
 app.use('/api/contacts', contactRoutes);
+app.use('/api/blogs', blogRoutes);
+app.use('/api/services', serviceRoutes);
+
+
 
 
 
