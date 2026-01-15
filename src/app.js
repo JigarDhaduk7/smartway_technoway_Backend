@@ -6,6 +6,7 @@ const contactRoutes = require('./routes/contact.routes');
 const blogRoutes = require('./routes/blog.routes');
 const serviceRoutes = require('./routes/service.routes');
 const jobApplyRoutes = require('./routes/jobApply.routes');
+const skillRoutes = require('./routes/skill.routes');
 
 
 
@@ -20,6 +21,7 @@ app.use('/api/contacts', contactRoutes);
 app.use('/api/blogs', blogRoutes);
 app.use('/api/services', serviceRoutes);
 app.use('/api/job', jobApplyRoutes);
+app.use('/api/skills', skillRoutes);
 
 
 
