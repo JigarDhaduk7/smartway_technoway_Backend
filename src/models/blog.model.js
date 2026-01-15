@@ -7,6 +7,13 @@ const blogSchema = new mongoose.Schema(
       required: true,
       trim: true
     },
+    slug: {
+      type: String,
+      required: true,
+      unique: true,
+      lowercase: true,
+      trim: true
+    },
     image: {
       type: String, // Base64 image
       required: true
