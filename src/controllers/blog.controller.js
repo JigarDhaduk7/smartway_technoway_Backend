@@ -11,16 +11,35 @@ exports.createBlog = async (req, res) => {
       });
     }
 
+    const { title, slug, content } = req.body;
+
+    if (!slug) {
+      return res.status(400).json({
+        success: false,
+        message: 'Slug is required'
+      });
+    }
+
+    // slug unique check
+    const slugExists = await Blog.findOne({ slug });
+    if (slugExists) {
+      return res.status(400).json({
+        success: false,
+        message: 'Slug already exists'
+      });
+    }
+
     const imageBase64 = fs.readFileSync(req.file.path, 'base64');
     const base64Image = `data:${req.file.mimetype};base64,${imageBase64}`;
 
     const blog = await Blog.create({
-      title: req.body.title,
+      title,
+      slug,
       image: base64Image,
-      content: req.body.content
+      content
     });
 
-    fs.unlinkSync(req.file.path); // temp file delete
+    fs.unlinkSync(req.file.path);
 
     res.status(201).json({
       success: true,
@@ -31,26 +50,9 @@ exports.createBlog = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
-
-// ✅ GET ALL BLOGS
-exports.getBlogs = async (req, res) => {
+exports.getBlogBySlug = async (req, res) => {
   try {
-    const blogs = await Blog.find({ isPublished: true })
-      .sort({ createdAt: -1 });
-
-    res.status(200).json({
-      success: true,
-      data: blogs
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-// ✅ GET BLOG BY ID
-exports.getBlogById = async (req, res) => {
-  try {
-    const blog = await Blog.findById(req.params.id);
+    const blog = await Blog.findOne({ slug: req.params.slug });
 
     if (!blog) {
       return res.status(404).json({
@@ -62,6 +64,22 @@ exports.getBlogById = async (req, res) => {
     res.status(200).json({
       success: true,
       data: blog
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+
+// ✅ GET ALL BLOGS
+exports.getBlogs = async (req, res) => {
+  try {
+    const blogs = await Blog.find({ isPublished: true })
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      data: blogs
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
