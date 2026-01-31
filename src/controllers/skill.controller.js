@@ -47,6 +47,27 @@ exports.getSkills = async (req, res) => {
   }
 };
 
+// ✅ GET SKILL BY ID
+exports.getSkillById = async (req, res) => {
+  try {
+    const skill = await Skill.findById(req.params.id);
+
+    if (!skill) {
+      return res.status(404).json({
+        success: false,
+        message: 'Skill not found'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: skill
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 // ✅ UPDATE SKILL
 exports.updateSkill = async (req, res) => {
   try {
