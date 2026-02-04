@@ -8,7 +8,7 @@ const skillSchema = new mongoose.Schema(
       trim: true
     },
     image: {
-      type: String, // Base64 image
+      type: String, // S3 URL
       required: true
     },
     status: {

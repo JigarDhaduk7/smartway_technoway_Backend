@@ -1,5 +1,5 @@
 const Skill = require('../models/skill.model');
-const fs = require('fs');
+const s3Service = require('../services/s3.service');
 
 // ✅ CREATE SKILL
 exports.createSkill = async (req, res) => {
@@ -13,15 +13,12 @@ exports.createSkill = async (req, res) => {
       });
     }
 
-    const imageBase64 = fs.readFileSync(req.file.path, 'base64');
-    const base64Image = `data:${req.file.mimetype};base64,${imageBase64}`;
+    const imageUrl = await s3Service.uploadFile(req.file, 'skills');
 
     const skill = await Skill.create({
       title,
-      image: base64Image
+      image: imageUrl
     });
-
-    fs.unlinkSync(req.file.path);
 
     res.status(201).json({
       success: true,
@@ -50,22 +47,7 @@ exports.getSkills = async (req, res) => {
 // ✅ UPDATE SKILL
 exports.updateSkill = async (req, res) => {
   try {
-    const updateData = {
-      title: req.body.title
-    };
-
-    if (req.file) {
-      const imageBase64 = fs.readFileSync(req.file.path, 'base64');
-      updateData.image = `data:${req.file.mimetype};base64,${imageBase64}`;
-      fs.unlinkSync(req.file.path);
-    }
-
-    const skill = await Skill.findByIdAndUpdate(
-      req.params.id,
-      updateData,
-      { new: true }
-    );
-
+    const skill = await Skill.findById(req.params.id);
     if (!skill) {
       return res.status(404).json({
         success: false,
@@ -73,10 +55,27 @@ exports.updateSkill = async (req, res) => {
       });
     }
 
+    const updateData = {
+      title: req.body.title
+    };
+
+    if (req.file) {
+      // Delete old image from S3
+      await s3Service.deleteFile(skill.image);
+      // Upload new image
+      updateData.image = await s3Service.uploadFile(req.file, 'skills');
+    }
+
+    const updatedSkill = await Skill.findByIdAndUpdate(
+      req.params.id,
+      updateData,
+      { new: true }
+    );
+
     res.status(200).json({
       success: true,
       message: 'Skill updated successfully',
-      data: skill
+      data: updatedSkill
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -86,7 +85,7 @@ exports.updateSkill = async (req, res) => {
 // ✅ DELETE SKILL
 exports.deleteSkill = async (req, res) => {
   try {
-    const skill = await Skill.findByIdAndDelete(req.params.id);
+    const skill = await Skill.findById(req.params.id);
 
     if (!skill) {
       return res.status(404).json({
@@ -94,6 +93,12 @@ exports.deleteSkill = async (req, res) => {
         message: 'Skill not found'
       });
     }
+
+    // Delete image from S3
+    await s3Service.deleteFile(skill.image);
+    
+    // Delete skill from database
+    await Skill.findByIdAndDelete(req.params.id);
 
     res.status(200).json({
       success: true,

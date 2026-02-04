@@ -1,5 +1,5 @@
 const Blog = require('../models/blog.model');
-const fs = require('fs');
+const s3Service = require('../services/s3.service');
 
 // ✅ CREATE BLOG
 exports.createBlog = async (req, res) => {
@@ -29,17 +29,14 @@ exports.createBlog = async (req, res) => {
       });
     }
 
-    const imageBase64 = fs.readFileSync(req.file.path, 'base64');
-    const base64Image = `data:${req.file.mimetype};base64,${imageBase64}`;
+    const imageUrl = await s3Service.uploadFile(req.file, 'blogs');
 
     const blog = await Blog.create({
       title,
       slug,
-      image: base64Image,
+      image: imageUrl,
       content
     });
-
-    fs.unlinkSync(req.file.path);
 
     res.status(201).json({
       success: true,
@@ -89,23 +86,7 @@ exports.getBlogs = async (req, res) => {
 // ✅ UPDATE BLOG
 exports.updateBlog = async (req, res) => {
   try {
-    const updateData = {
-      title: req.body.title,
-      content: req.body.content
-    };
-
-    if (req.file) {
-      const imageBase64 = fs.readFileSync(req.file.path, 'base64');
-      updateData.image = `data:${req.file.mimetype};base64,${imageBase64}`;
-      fs.unlinkSync(req.file.path);
-    }
-
-    const blog = await Blog.findByIdAndUpdate(
-      req.params.id,
-      updateData,
-      { new: true }
-    );
-
+    const blog = await Blog.findById(req.params.id);
     if (!blog) {
       return res.status(404).json({
         success: false,
@@ -113,10 +94,28 @@ exports.updateBlog = async (req, res) => {
       });
     }
 
+    const updateData = {
+      title: req.body.title,
+      content: req.body.content
+    };
+
+    if (req.file) {
+      // Delete old image from S3
+      await s3Service.deleteFile(blog.image);
+      // Upload new image
+      updateData.image = await s3Service.uploadFile(req.file, 'blogs');
+    }
+
+    const updatedBlog = await Blog.findByIdAndUpdate(
+      req.params.id,
+      updateData,
+      { new: true }
+    );
+
     res.status(200).json({
       success: true,
       message: 'Blog updated successfully',
-      data: blog
+      data: updatedBlog
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -126,7 +125,7 @@ exports.updateBlog = async (req, res) => {
 // ✅ DELETE BLOG
 exports.deleteBlog = async (req, res) => {
   try {
-    const blog = await Blog.findByIdAndDelete(req.params.id);
+    const blog = await Blog.findById(req.params.id);
 
     if (!blog) {
       return res.status(404).json({
@@ -134,6 +133,12 @@ exports.deleteBlog = async (req, res) => {
         message: 'Blog not found'
       });
     }
+
+    // Delete image from S3
+    await s3Service.deleteFile(blog.image);
+    
+    // Delete blog from database
+    await Blog.findByIdAndDelete(req.params.id);
 
     res.status(200).json({
       success: true,
