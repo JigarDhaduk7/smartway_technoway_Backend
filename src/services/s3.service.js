@@ -12,44 +12,53 @@ AWS.config.update({
 const s3 = new AWS.S3();
 
 class S3Service {
+
   async uploadFile(file, folder = 'images') {
+    const filePath = file.path;
+
     try {
-      const fileContent = fs.readFileSync(file.path);
-      const fileName = `${folder}/${Date.now()}-${file.originalname}`;
-      
+      const fileContent = fs.readFileSync(filePath);
+
+      const fileName = `${folder}/${Date.now()}-${file.originalname.replace(/\s+/g, '-')}`;
+
       const params = {
         Bucket: process.env.AWS_S3_BUCKET,
         Key: fileName,
         Body: fileContent,
-        ContentType: file.mimetype,
-        ACL: 'public-read'
+        ContentType: file.mimetype
+        // ❌ ACL REMOVED (bucket owner enforced)
       };
 
       const result = await s3.upload(params).promise();
-      
-      // Delete temp file
-      fs.unlinkSync(file.path);
-      
+
       return result.Location;
+
     } catch (error) {
-      // Clean up temp file on error
-      if (fs.existsSync(file.path)) {
-        fs.unlinkSync(file.path);
-      }
       throw error;
+    } finally {
+      // ✅ Always clean temp file
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
     }
   }
 
   async deleteFile(fileUrl) {
     try {
-      const key = fileUrl.split('/').slice(-2).join('/'); // Extract folder/filename
-      
+      const bucketName = process.env.AWS_S3_BUCKET;
+
+      // Extract key correctly (handles nested folders)
+      const key = decodeURIComponent(
+        fileUrl.split(`${bucketName}.s3.`)[1].split('/').slice(1).join('/')
+      );
+
       const params = {
-        Bucket: process.env.AWS_S3_BUCKET,
+        Bucket: bucketName,
         Key: key
       };
 
       await s3.deleteObject(params).promise();
+
     } catch (error) {
       console.error('Error deleting file from S3:', error);
     }
