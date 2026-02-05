@@ -26,7 +26,6 @@ class S3Service {
         Key: fileName,
         Body: fileContent,
         ContentType: file.mimetype
-        // ❌ ACL REMOVED (bucket owner enforced)
       };
 
       const result = await s3.upload(params).promise();
@@ -62,6 +61,15 @@ class S3Service {
     } catch (error) {
       console.error('Error deleting file from S3:', error);
     }
+  }
+
+  // Generate signed URL for private files
+  getSignedUrl(key, expires = 3600) {
+    return s3.getSignedUrl('getObject', {
+      Bucket: process.env.AWS_S3_BUCKET,
+      Key: key,
+      Expires: expires
+    });
   }
 }
 
