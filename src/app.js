@@ -22,6 +22,7 @@ app.use('/api/blogs', blogRoutes);
 app.use('/api/services', serviceRoutes);
 app.use('/api/job', jobApplyRoutes);
 app.use('/api/skills', skillRoutes);
+app.use("/api/auth", require("./routes/auth.routes"));
 
 
 
