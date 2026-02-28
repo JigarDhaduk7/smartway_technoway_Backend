@@ -14,31 +14,26 @@ const s3 = new AWS.S3();
 class S3Service {
 
   async uploadFile(file, folder = 'images') {
-    const filePath = file.path;
-
     try {
-      const fileContent = fs.readFileSync(filePath);
+      if (!file || !file.buffer) {
+        throw new Error('File buffer not found');
+      }
 
       const fileName = `${folder}/${Date.now()}-${file.originalname.replace(/\s+/g, '-')}`;
 
       const params = {
         Bucket: process.env.AWS_S3_BUCKET,
         Key: fileName,
-        Body: fileContent,
+        Body: file.buffer,
         ContentType: file.mimetype
       };
 
       const result = await s3.upload(params).promise();
-
       return result.Location;
 
     } catch (error) {
+      console.error('S3 Upload Error:', error);
       throw error;
-    } finally {
-      // ✅ Always clean temp file
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
-      }
     }
   }
 

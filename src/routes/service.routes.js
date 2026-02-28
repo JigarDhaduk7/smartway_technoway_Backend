@@ -18,11 +18,23 @@ const serviceUpload = upload.fields([
   { name: 'serviceIcon2', maxCount: 1 },
   { name: 'serviceIcon3', maxCount: 1 },
   { name: 'serviceIcon4', maxCount: 1 },
+  { name: 'serviceIcon5', maxCount: 1 },
+  { name: 'serviceIcon6', maxCount: 1 },
+  { name: 'serviceIcon7', maxCount: 1 },
+  { name: 'serviceIcon8', maxCount: 1 },
+  { name: 'serviceIcon9', maxCount: 1 },
+  { name: 'serviceIcon10', maxCount: 1 },
   { name: 'stepIcon0', maxCount: 1 },
   { name: 'stepIcon1', maxCount: 1 },
   { name: 'stepIcon2', maxCount: 1 },
   { name: 'stepIcon3', maxCount: 1 },
-  { name: 'stepIcon4', maxCount: 1 }
+  { name: 'stepIcon4', maxCount: 1 },
+  { name: 'stepIcon5', maxCount: 1 },
+  { name: 'stepIcon6', maxCount: 1 },
+  { name: 'stepIcon7', maxCount: 1 },
+  { name: 'stepIcon8', maxCount: 1 },
+  { name: 'stepIcon9', maxCount: 1 },
+  { name: 'stepIcon10', maxCount: 1 },
 ]);
 
 router.post('/create', serviceUpload, createService);
