@@ -1,15 +1,14 @@
-const AWS = require('aws-sdk');
+const { S3Client, PutObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
 const fs = require('fs');
 const path = require('path');
 
-// Configure AWS
-AWS.config.update({
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  region: process.env.AWS_REGION
+const s3Client = new S3Client({
+  region: process.env.AWS_REGION,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+  }
 });
-
-const s3 = new AWS.S3();
 
 class S3Service {
 
@@ -21,15 +20,16 @@ class S3Service {
 
       const fileName = `${folder}/${Date.now()}-${file.originalname.replace(/\s+/g, '-')}`;
 
-      const params = {
+      const command = new PutObjectCommand({
         Bucket: process.env.AWS_S3_BUCKET,
         Key: fileName,
         Body: file.buffer,
         ContentType: file.mimetype
-      };
+      });
 
-      const result = await s3.upload(params).promise();
-      return result.Location;
+      await s3Client.send(command);
+      
+      return `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileName}`;
 
     } catch (error) {
       console.error('S3 Upload Error:', error);
@@ -40,31 +40,20 @@ class S3Service {
   async deleteFile(fileUrl) {
     try {
       const bucketName = process.env.AWS_S3_BUCKET;
-
-      // Extract key correctly (handles nested folders)
       const key = decodeURIComponent(
         fileUrl.split(`${bucketName}.s3.`)[1].split('/').slice(1).join('/')
       );
 
-      const params = {
+      const command = new DeleteObjectCommand({
         Bucket: bucketName,
         Key: key
-      };
+      });
 
-      await s3.deleteObject(params).promise();
+      await s3Client.send(command);
 
     } catch (error) {
       console.error('Error deleting file from S3:', error);
     }
-  }
-
-  // Generate signed URL for private files
-  getSignedUrl(key, expires = 3600) {
-    return s3.getSignedUrl('getObject', {
-      Bucket: process.env.AWS_S3_BUCKET,
-      Key: key,
-      Expires: expires
-    });
   }
 }
 

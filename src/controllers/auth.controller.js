@@ -5,16 +5,16 @@ const jwt = require("jsonwebtoken");
 // SIGN UP
 exports.register = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { userName, email, mobileNumber, password } = req.body;
 
-    const userExist = await User.findOne({ email });
+    const userExist = await User.findOne({ $or: [{ email }, { mobileNumber }] });
     if (userExist) {
-      return res.status(400).json({ message: "Email already exists" });
+      return res.status(400).json({ message: "Email or Mobile Number already exists" });
     }
 
     const hashedPass = await bcrypt.hash(password, 10);
 
-    const newUser = new User({ email, password: hashedPass });
+    const newUser = new User({ userName, email, mobileNumber, password: hashedPass });
     await newUser.save();
 
     res.json({ message: "User registered successfully" });
@@ -46,9 +46,42 @@ exports.login = async (req, res) => {
       token,
       user: {
         id: user._id,
+        userName: user.userName,
         email: user.email,
+        mobileNumber: user.mobileNumber,
       },
     });
+  } catch (error) {
+    res.status(500).json({ error });
+  }
+};
+
+// GET USER PROFILE
+exports.getProfile = async (req, res) => {
+  try {
+    const user = await User.findOne().select('-password');
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    res.json({ success: true, user });
+  } catch (error) {
+    res.status(500).json({ error });
+  }
+};
+
+// UPDATE USER PROFILE
+exports.updateProfile = async (req, res) => {
+  try {
+    const { userName, mobileNumber } = req.body;
+    
+    const user = await User.findOneAndUpdate(
+      {},
+      { userName, mobileNumber },
+      { new: true }
+    ).select('-password');
+
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    res.json({ success: true, message: "Profile updated", user });
   } catch (error) {
     res.status(500).json({ error });
   }
