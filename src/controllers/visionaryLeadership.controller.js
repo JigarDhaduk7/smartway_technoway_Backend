@@ -3,6 +3,9 @@ const s3Service = require('../services/s3.service');
 
 exports.createLeader = async (req, res) => {
   try {
+    console.log('Request body:', req.body);
+    console.log('Request file:', req.file);
+    
     const { name, position } = req.body;
 
     if (!name || !position || !req.file) {
@@ -26,6 +29,7 @@ exports.createLeader = async (req, res) => {
       data: leader
     });
   } catch (error) {
+    console.error('Create Leader Error:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 };

@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const upload = require('../middleware/upload');
+const multer = require('multer');
 
 const {
   createService,
@@ -10,37 +10,13 @@ const {
   deleteService
 } = require('../controllers/service.controller');
 
-// Multiple file upload fields for service icons
-const serviceUpload = upload.fields([
-  { name: 'cardIcon', maxCount: 1 },
-  { name: 'serviceIcon0', maxCount: 1 },
-  { name: 'serviceIcon1', maxCount: 1 },
-  { name: 'serviceIcon2', maxCount: 1 },
-  { name: 'serviceIcon3', maxCount: 1 },
-  { name: 'serviceIcon4', maxCount: 1 },
-  { name: 'serviceIcon5', maxCount: 1 },
-  { name: 'serviceIcon6', maxCount: 1 },
-  { name: 'serviceIcon7', maxCount: 1 },
-  { name: 'serviceIcon8', maxCount: 1 },
-  { name: 'serviceIcon9', maxCount: 1 },
-  { name: 'serviceIcon10', maxCount: 1 },
-  { name: 'stepIcon0', maxCount: 1 },
-  { name: 'stepIcon1', maxCount: 1 },
-  { name: 'stepIcon2', maxCount: 1 },
-  { name: 'stepIcon3', maxCount: 1 },
-  { name: 'stepIcon4', maxCount: 1 },
-  { name: 'stepIcon5', maxCount: 1 },
-  { name: 'stepIcon6', maxCount: 1 },
-  { name: 'stepIcon7', maxCount: 1 },
-  { name: 'stepIcon8', maxCount: 1 },
-  { name: 'stepIcon9', maxCount: 1 },
-  { name: 'stepIcon10', maxCount: 1 },
-]);
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
 
-router.post('/create', serviceUpload, createService);
+router.post('/create', upload.any(), createService);
 router.get('/', getServices);
 router.get('/:slug', getServiceBySlug);
-router.put('/update/:id', serviceUpload, updateService);
+router.put('/update/:id', upload.any(), updateService);
 router.delete('/delete/:id', deleteService);
 
 module.exports = router;

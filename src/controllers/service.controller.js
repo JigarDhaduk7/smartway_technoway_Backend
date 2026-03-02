@@ -25,32 +25,52 @@ exports.createService = async (req, res) => {
     }
 
     const serviceData = { ...req.body };
+    const uploadPromises = [];
+    const fileMap = {};
+
+    // Create file map from uploaded files
+    if (req.files && Array.isArray(req.files)) {
+      req.files.forEach(file => {
+        fileMap[file.fieldname] = file;
+      });
+    }
 
     // Handle card icon upload
-    if (req.files && req.files.cardIcon) {
+    if (fileMap.cardIcon) {
       serviceData.card = serviceData.card || {};
-      serviceData.card.icon = await s3Service.uploadFile(req.files.cardIcon[0], 'services/icons');
+      uploadPromises.push(
+        s3Service.uploadFile(fileMap.cardIcon, 'services/icons')
+          .then(url => { serviceData.card.icon = url; })
+      );
     }
 
-    // Handle services overview icons
-    if (req.files && serviceData.servicesOverview && serviceData.servicesOverview.services) {
-      for (let i = 0; i < serviceData.servicesOverview.services.length; i++) {
+    // Handle services overview icons in parallel
+    if (serviceData.servicesOverview && serviceData.servicesOverview.services) {
+      serviceData.servicesOverview.services.forEach((service, i) => {
         const iconField = `serviceIcon${i}`;
-        if (req.files[iconField]) {
-          serviceData.servicesOverview.services[i].icon = await s3Service.uploadFile(req.files[iconField][0], 'services/icons');
+        if (fileMap[iconField]) {
+          uploadPromises.push(
+            s3Service.uploadFile(fileMap[iconField], 'services/icons')
+              .then(url => { serviceData.servicesOverview.services[i].icon = url; })
+          );
         }
-      }
+      });
     }
 
-    // Handle process step icons
-    if (req.files && serviceData.processSection && serviceData.processSection.steps) {
-      for (let i = 0; i < serviceData.processSection.steps.length; i++) {
+    // Handle process step icons in parallel
+    if (serviceData.processSection && serviceData.processSection.steps) {
+      serviceData.processSection.steps.forEach((step, i) => {
         const iconField = `stepIcon${i}`;
-        if (req.files[iconField]) {
-          serviceData.processSection.steps[i].icon = await s3Service.uploadFile(req.files[iconField][0], 'services/icons');
+        if (fileMap[iconField]) {
+          uploadPromises.push(
+            s3Service.uploadFile(fileMap[iconField], 'services/icons')
+              .then(url => { serviceData.processSection.steps[i].icon = url; })
+          );
         }
-      }
+      });
     }
+
+    await Promise.all(uploadPromises);
 
     const service = await Service.create(serviceData);
 
@@ -104,43 +124,62 @@ exports.updateService = async (req, res) => {
     }
 
     const updateData = { ...req.body };
+    const uploadPromises = [];
+    const deletePromises = [];
+    const fileMap = {};
+
+    // Create file map from uploaded files
+    if (req.files && Array.isArray(req.files)) {
+      req.files.forEach(file => {
+        fileMap[file.fieldname] = file;
+      });
+    }
 
     // Handle card icon upload
-    if (req.files && req.files.cardIcon) {
+    if (fileMap.cardIcon) {
       if (service.card && service.card.icon) {
-        await s3Service.deleteFile(service.card.icon);
+        deletePromises.push(s3Service.deleteFile(service.card.icon));
       }
       updateData.card = updateData.card || {};
-      updateData.card.icon = await s3Service.uploadFile(req.files.cardIcon[0], 'services/icons');
+      uploadPromises.push(
+        s3Service.uploadFile(fileMap.cardIcon, 'services/icons')
+          .then(url => { updateData.card.icon = url; })
+      );
     }
 
-    // Handle services overview icons
-    if (req.files && updateData.servicesOverview && updateData.servicesOverview.services) {
-      for (let i = 0; i < updateData.servicesOverview.services.length; i++) {
+    // Handle services overview icons in parallel
+    if (updateData.servicesOverview && updateData.servicesOverview.services) {
+      updateData.servicesOverview.services.forEach((svc, i) => {
         const iconField = `serviceIcon${i}`;
-        if (req.files[iconField]) {
-          // Delete old icon if exists
+        if (fileMap[iconField]) {
           if (service.servicesOverview && service.servicesOverview.services[i] && service.servicesOverview.services[i].icon) {
-            await s3Service.deleteFile(service.servicesOverview.services[i].icon);
+            deletePromises.push(s3Service.deleteFile(service.servicesOverview.services[i].icon));
           }
-          updateData.servicesOverview.services[i].icon = await s3Service.uploadFile(req.files[iconField][0], 'services/icons');
+          uploadPromises.push(
+            s3Service.uploadFile(fileMap[iconField], 'services/icons')
+              .then(url => { updateData.servicesOverview.services[i].icon = url; })
+          );
         }
-      }
+      });
     }
 
-    // Handle process step icons
-    if (req.files && updateData.processSection && updateData.processSection.steps) {
-      for (let i = 0; i < updateData.processSection.steps.length; i++) {
+    // Handle process step icons in parallel
+    if (updateData.processSection && updateData.processSection.steps) {
+      updateData.processSection.steps.forEach((step, i) => {
         const iconField = `stepIcon${i}`;
-        if (req.files[iconField]) {
-          // Delete old icon if exists
+        if (fileMap[iconField]) {
           if (service.processSection && service.processSection.steps[i] && service.processSection.steps[i].icon) {
-            await s3Service.deleteFile(service.processSection.steps[i].icon);
+            deletePromises.push(s3Service.deleteFile(service.processSection.steps[i].icon));
           }
-          updateData.processSection.steps[i].icon = await s3Service.uploadFile(req.files[iconField][0], 'services/icons');
+          uploadPromises.push(
+            s3Service.uploadFile(fileMap[iconField], 'services/icons')
+              .then(url => { updateData.processSection.steps[i].icon = url; })
+          );
         }
-      }
+      });
     }
+
+    await Promise.all([...deletePromises, ...uploadPromises]);
 
     const updatedService = await Service.findByIdAndUpdate(
       req.params.id,
@@ -170,28 +209,30 @@ exports.deleteService = async (req, res) => {
       });
     }
 
-    // Delete all associated icons from S3
+    const deletePromises = [];
+
+    // Delete all associated icons from S3 in parallel
     if (service.card && service.card.icon) {
-      await s3Service.deleteFile(service.card.icon);
+      deletePromises.push(s3Service.deleteFile(service.card.icon));
     }
 
     if (service.servicesOverview && service.servicesOverview.services) {
-      for (const serviceItem of service.servicesOverview.services) {
+      service.servicesOverview.services.forEach(serviceItem => {
         if (serviceItem.icon) {
-          await s3Service.deleteFile(serviceItem.icon);
+          deletePromises.push(s3Service.deleteFile(serviceItem.icon));
         }
-      }
+      });
     }
 
     if (service.processSection && service.processSection.steps) {
-      for (const step of service.processSection.steps) {
+      service.processSection.steps.forEach(step => {
         if (step.icon) {
-          await s3Service.deleteFile(step.icon);
+          deletePromises.push(s3Service.deleteFile(step.icon));
         }
-      }
+      });
     }
 
-    await Service.findByIdAndDelete(req.params.id);
+    await Promise.all([...deletePromises, Service.findByIdAndDelete(req.params.id)]);
 
     res.status(200).json({
       success: true,
