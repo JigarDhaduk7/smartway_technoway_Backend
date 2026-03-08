@@ -10,8 +10,7 @@ const jobApplySchema = new mongoose.Schema(
     resume: {
       fileName: String,
       mimeType: String,
-      oneDriveFileId: String,
-      oneDriveUrl: String
+      s3Url: String
     }
   },
   { timestamps: true }

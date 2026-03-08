@@ -4,12 +4,12 @@ const path = require('path');
 const storage = multer.memoryStorage(); // buffer me file rakhenge
 
 const fileFilter = (req, file, cb) => {
-  const allowed = ['application/pdf', 'image/jpeg', 'image/jpg'];
+  const allowed = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
 
   if (allowed.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error('Only PDF or JPG files are allowed'), false);
+    cb(new Error('Only PDF, JPG, and PNG files are allowed'), false);
   }
 };
 
