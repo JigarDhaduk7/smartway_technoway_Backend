@@ -8,6 +8,7 @@ const serviceRoutes = require('./routes/service.routes');
 const jobApplyRoutes = require('./routes/jobApply.routes');
 const skillRoutes = require('./routes/skill.routes');
 const visionaryLeadershipRoutes = require('./routes/visionaryLeadership.routes');
+const projectRoutes = require('./routes/project.routes');
 
 
 
@@ -24,6 +25,7 @@ app.use('/api/services', serviceRoutes);
 app.use('/api/job', jobApplyRoutes);
 app.use('/api/skills', skillRoutes);
 app.use('/api/leaders', visionaryLeadershipRoutes);
+app.use('/api/projects', projectRoutes);
 app.use("/api/auth", require("./routes/auth.routes"));
 
 
